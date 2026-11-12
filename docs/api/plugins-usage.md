@@ -10,7 +10,9 @@ server.use(restify.plugins.queryParser());
 server.use(restify.plugins.jsonp());
 server.use(restify.plugins.gzipResponse());
 server.use(restify.plugins.bodyParser());
-server.use(restify.plugins.requestExpiry());
+server.use(restify.plugins.requestExpiry({
+  absoluteHeader: 'x-request-expiry-time'
+}));
 server.use(restify.plugins.throttle({
   burst: 100,
   rate: 50,

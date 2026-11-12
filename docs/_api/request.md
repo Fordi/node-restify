@@ -8,67 +8,107 @@ permalink: /docs/request-api/
 ### Table of Contents
 
 -   [Request][1]
-    -   [accepts][2]
-        -   [Parameters][3]
-        -   [Examples][4]
-    -   [acceptsEncoding][5]
+    -   [Properties][2]
+    -   [absoluteUri][3]
+        -   [Parameters][4]
+    -   [accepts][5]
         -   [Parameters][6]
-    -   [contentLength][7]
-    -   [getContentType][8]
-    -   [date][9]
-    -   [href][10]
-        -   [Examples][11]
-    -   [id][12]
-        -   [Parameters][13]
-    -   [getPath][14]
-        -   [Examples][15]
-    -   [getQuery][16]
-        -   [Examples][17]
-    -   [time][18]
-    -   [version][19]
-    -   [header][20]
-        -   [Parameters][21]
-        -   [Examples][22]
-    -   [trailer][23]
-        -   [Parameters][24]
-    -   [is][25]
+        -   [Examples][7]
+    -   [acceptsEncoding][8]
+        -   [Parameters][9]
+    -   [contentLength][10]
+    -   [contentType][11]
+    -   [date][12]
+    -   [href][13]
+        -   [Examples][14]
+    -   [id][15]
+        -   [Parameters][16]
+    -   [path][17]
+        -   [Examples][18]
+    -   [getQuery][19]
+        -   [Examples][20]
+    -   [time][21]
+    -   [getUrl][22]
+    -   [version][23]
+    -   [matchedVersion][24]
+    -   [header][25]
         -   [Parameters][26]
         -   [Examples][27]
-    -   [isChunked][28]
-    -   [isKeepAlive][29]
-    -   [isSecure][30]
-    -   [isUpgradeRequest][31]
-    -   [isUpload][32]
-    -   [toString][33]
-    -   [userAgent][34]
-    -   [startHandlerTimer][35]
-        -   [Parameters][36]
-        -   [Examples][37]
-    -   [endHandlerTimer][38]
-        -   [Parameters][39]
-    -   [connectionState][40]
-    -   [getRoute][41]
+    -   [trailer][28]
+        -   [Parameters][29]
+    -   [is][30]
+        -   [Parameters][31]
+        -   [Examples][32]
+    -   [isChunked][33]
+    -   [isKeepAlive][34]
+    -   [isSecure][35]
+    -   [isUpgradeRequest][36]
+    -   [isUpload][37]
+    -   [toString][38]
+    -   [userAgent][39]
+    -   [startHandlerTimer][40]
+        -   [Parameters][41]
         -   [Examples][42]
--   [Events][43]
--   [Log][44]
+    -   [endHandlerTimer][43]
+        -   [Parameters][44]
+    -   [connectionState][45]
+    -   [getRoute][46]
+        -   [Examples][47]
+-   [Events][48]
+-   [Log][49]
 
 ## Request
 
 **Extends http.IncomingMessage**
 
 Wraps all of the node
-[http.IncomingMessage][45]
+[http.IncomingMessage][50]
 APIs, events and properties, plus the following.
+
+### Properties
+
+-   `log` **[Object][51]** request logger (a child logger bound to the
+    request id once `plugins.requestLogger` runs)
+-   `params` **[Object][51]** route params, plus query/body values when a
+    parser's `mapParams` option is on
+-   `route` **[Object][51]** the matched route (`undefined` before routing
+    and on 404); see `getRoute()`
+-   `timers` **[Array][52]&lt;[Object][51]>** per-handler timings, as
+    `{ name, time: [seconds, nanoseconds] }`
+-   `query` **([Object][51] \| [Function][53])** the parsed query string once
+    `plugins.queryParser` or `plugins.jsonp` runs; otherwise this is the
+    `query()` method (an alias of `getQuery()`)
+-   `body` **any?** the parsed body (`plugins.bodyParser`), or the
+    raw string/Buffer when only `plugins.bodyReader` ran
+-   `rawBody` **([String][54] \| [Buffer][55])?** the unparsed body, saved by the
+    body parsers
+-   `files` **[Object][51]?** uploaded files, keyed by field name
+    (`plugins.multipartBodyParser`)
+-   `username` **([String][54] | null)?** set by
+    `plugins.authorizationParser`; `'anonymous'` by default
+-   `authorization` **[Object][51]?** set by
+    `plugins.authorizationParser`
+
+### absoluteUri
+
+Builds an absolute URI relative to the current request URL.
+
+#### Parameters
+
+-   `path` **[String][54]** a url path
+
+Returns **[String][54]** uri
 
 ### accepts
 
-Check if the Accept header is present, and includes the given type.
-When the Accept header is not present true is returned.
+Negotiates the given type(s) against the Accept header, returning the
+preferred match. When the Accept header is not present it is treated as
+accepting anything, so the first type is returned.
 Otherwise the given type is matched by an exact match, and then subtypes.
 
 #### Parameters
 
--   `types` **([String][46] \| [Array][47]&lt;[String][46]>)** an array of accept type headers
+-   `types` **([String][54] \| [Array][52]&lt;[String][54]>)** a media type, or an array of them
 
 #### Examples
 
@@ -79,55 +119,58 @@ to text/html using the mime lookup table:
 ```javascript
 // Accept: text/html
 req.accepts('html');
-// => true
+// => 'text/html'
 
-// Accept: text/*; application/json
+// Accept: text/*, application/json
 req.accepts('html');
-req.accepts('text/html');
-req.accepts('text/plain');
-req.accepts('application/json');
-// => true
+// => 'text/html'
+req.accepts(['image/png', 'application/json']);
+// => 'application/json'
 
 req.accepts('image/png');
 req.accepts('png');
-// => false
+// => undefined
 ```
 
-Returns **[Boolean][48]** is accepteed
+Returns **([String][54] \| [undefined][56])** the preferred matching media type, or
+                             `undefined` if none match
 
 ### acceptsEncoding
 
-Checks if the request accepts the encoding type(s) specified.
+Negotiates the given encoding(s) against the Accept-Encoding header.
 
 #### Parameters
 
--   `types` **([String][46] \| [Array][47]&lt;[String][46]>)** an array of accept type headers
+-   `types` **([String][54] \| [Array][52]&lt;[String][54]>)** an encoding, or an array of them
 
-Returns **[Boolean][48]** is accepted encoding
+Returns **([String][54] \| [undefined][56])** the preferred matching encoding, or
+                             `undefined` if none match
 
 ### contentLength
 
 Returns the value of the content-length header.
 
-Returns **[Number][49]** 
+Returns **([Number][57] \| [undefined][56])** content length (`0` for upgrade requests,
+                            `undefined` when the header is absent)
 
-### getContentType
+### contentType
 
-Returns the value of the content-type header. If a content-type is not
-set, this will return a default value of `application/octet-stream`
+Returns the lower-cased media type of the content-type header (without
+parameters). If a content-type is not set, this will return a default
+value of `application/octet-stream`
 
-Returns **[String][46]** content type
+Returns **[String][54]** content type
 
 ### date
 
 Returns a Date object representing when the request was setup.
 Like `time()`, but returns a Date object.
 
-Returns **[Date][50]** date when request began being processed
+Returns **[Date][58]** date when request began being processed
 
 ### href
 
-Returns the full requested URL.
+Returns the requested path plus query string (not the absolute URL).
 
 #### Examples
 
@@ -135,11 +178,11 @@ Returns the full requested URL.
 // incoming request is http://localhost:3000/foo/bar?a=1
 server.get('/:x/bar', function(req, res, next) {
     console.warn(req.href());
-    // => http://localhost:3000/foo/bar?a=1
+    // => /foo/bar?a=1
 });
 ```
 
-Returns **[String][46]** 
+Returns **[String][54]** path and query string
 
 ### id
 
@@ -150,11 +193,15 @@ once will cause restify to throw.
 
 #### Parameters
 
--   `reqId` **[String][46]** request id
+-   `reqId` **[String][54]?** request id
 
-Returns **[String][46]** id
 
-### getPath
+-   Throws **[Error][59]** when `reqId` is given but an id was already set (or
+                    already generated by a previous call)
+
+Returns **[String][54]** id
+
+### path
 
 Returns the cleaned up requested URL.
 
@@ -177,7 +224,7 @@ server.get('/bar', function(req, res, next) {
 });
 ```
 
-Returns **[String][30]** 
+Returns **[String][54]** URL pathname, with dot segments normalized
 
 ### getQuery
 
@@ -200,25 +247,41 @@ available under the req.query:
 // incoming request is /foo?a=1
 server.use(restify.plugins.queryParser());
 req.query;
-// => { a: 1 }
+// => { a: '1' }
 ```
 
-Returns **[String][46]** query
+Returns **[String][54]** query
 
 ### time
 
 The number of ms since epoch of when this request began being processed.
 Like date(), but returns a number.
 
-Returns **[Number][49]** time when request began being processed in epoch:
+Returns **[Number][57]** time when request began being processed in epoch:
                    ellapsed milliseconds since
                    January 1, 1970, 00:00:00 UTC
 
+### getUrl
+
+Returns the request URL as a WHATWG `URL` (cached per `req.url`).
+
+-   Throws **BadRequestError** if the request URL is absolute
+
+Returns **[URL][60]** url
+
 ### version
 
-Returns the accept-version header.
+Returns the `Accept-Version` header, falling back to `X-Api-Version`, or
+`'*'` when neither is present.
 
-Returns **[String][46]** 
+Returns **[String][54]** requested version
+
+### matchedVersion
+
+Returns the version matched by `plugins.conditionalHandler`, falling back
+to `version()`.
+
+Returns **[String][54]** version
 
 ### header
 
@@ -229,8 +292,8 @@ correctly spelled 'referrer' header to the actual spelling used.
 
 #### Parameters
 
--   `key` **[String][46]** the key of the header
--   `defaultValue` **[String][46]?** default value if header isn't
+-   `key` **[String][54]** the key of the header
+-   `defaultValue` **[String][54]?** default value if header isn't
                                       found on the req
 
 #### Examples
@@ -241,7 +304,9 @@ req.header('HOST');
 req.header('Accept', '*\/*');
 ```
 
-Returns **[String][46]** header value
+Returns **([String][54] \| [Array][52]&lt;[String][54]> | [undefined][56])** header value (an array for
+                                  headers node joins as such, e.g.
+                                  `set-cookie`)
 
 ### trailer
 
@@ -250,10 +315,11 @@ correctly spelled 'referrer' header to the actual spelling used.
 
 #### Parameters
 
--   `name` **[String][46]** the name of the header
--   `value` **[String][46]** default value if header isn't found on the req
+-   `name` **[String][54]** the name of the header
+-   `value` **[String][54]?** default value if header isn't found on the
+                               req
 
-Returns **[String][46]** trailer value
+Returns **([String][54] \| [undefined][56])** trailer value
 
 ### is
 
@@ -262,7 +328,8 @@ and if it contains the given mime type.
 
 #### Parameters
 
--   `type` **[String][46]** a content-type header value
+-   `type` **[String][54]** a media type, short name (`'json'`) or wildcard
+                            (`'application/*'`)
 
 #### Examples
 
@@ -281,49 +348,51 @@ req.is('html');
 // => false
 ```
 
-Returns **[Boolean][48]** is content-type header
+Returns **([Boolean][61] \| [Number][57])** whether the content type matches. Wildcard
+                           comparisons return `1` or `0` rather than a
+                           boolean.
 
 ### isChunked
 
 Check if the incoming request is chunked.
 
-Returns **[Boolean][48]** is chunked
+Returns **[Boolean][61]** is chunked
 
 ### isKeepAlive
 
 Check if the incoming request is kept alive.
 
-Returns **[Boolean][48]** is keep alive
+Returns **[Boolean][61]** is keep alive
 
 ### isSecure
 
 Check if the incoming request is encrypted.
 
-Returns **[Boolean][48]** is secure
+Returns **[Boolean][61]** is secure
 
 ### isUpgradeRequest
 
 Check if the incoming request has been upgraded.
 
-Returns **[Boolean][48]** is upgraded
+Returns **[Boolean][61]** is upgraded
 
 ### isUpload
 
 Check if the incoming request is an upload verb.
 
-Returns **[Boolean][48]** is upload
+Returns **[Boolean][61]** is upload
 
 ### toString
 
 toString serialization
 
-Returns **[String][46]** serialized request
+Returns **[String][54]** serialized request
 
 ### userAgent
 
 Returns the user-agent header.
 
-Returns **[String][46]** user agent
+Returns **([String][54] \| [undefined][56])** user agent
 
 ### startHandlerTimer
 
@@ -335,7 +404,7 @@ handler chain to record timing information.
 
 #### Parameters
 
--   `handlerName` **[String][46]** The name of the handler.
+-   `handlerName` **[String][54]** The name of the handler.
 
 #### Examples
 
@@ -366,7 +435,7 @@ server.get('/', function fooHandler(req, res, next) {
 });
 ```
 
-Returns **[undefined][51]** no return value
+Returns **[undefined][56]** no return value
 
 ### endHandlerTimer
 
@@ -376,17 +445,19 @@ handler. Otherwise the time recorded will be incorrect.
 
 #### Parameters
 
--   `handlerName` **[String][46]** The name of the handler.
+-   `handlerName` **[String][54]** The name of the handler.
 
-Returns **[undefined][51]** no return value
+Returns **[undefined][56]** no return value
 
 ### connectionState
 
 Returns the connection state of the request. Current possible values are:
 
--   `close` - when the request has been closed by the clien
+-   `close` - when the request has been closed by the client
 
-Returns **[String][46]** connection state (`"close"`)
+Otherwise it returns `undefined`.
+
+Returns **([String][54] \| [undefined][56])** connection state (`"close"`)
 
 ### getRoute
 
@@ -399,19 +470,20 @@ Route info object structure:
 
 ```javascript
 {
- path: '/ping/:name',
+ name: 'getpingname',
  method: 'GET',
- versions: [],
- name: 'getpingname'
+ path: '/ping/:name',
+ spec: { path: '/ping/:name', method: 'GET' }, // the route options
+ chain: Chain { ... }                           // the route's handlers
 }
 ```
 
-Returns **[Object][52]** route
+Returns **[Object][51]** route (`undefined` before routing and on 404)
 
 ## Events
 
 In additional to emitting all the events from node's
-[http.Server][53],
+[http.Server][62],
 restify servers also emit a number of additional events that make building REST
 and web applications much easier.
 
@@ -458,7 +530,8 @@ function(req, res, route, error) { }
 
 -   `req` - the request object
 -   `res` - the response object
--   `route` - the route object that serviced the request
+-   `route` - the route object that serviced the request (`undefined` when no
+    route matched)
 -   `error` - the error passed to `next()`, if applicable
 
 Note that when the server automatically responds with a
@@ -504,8 +577,9 @@ routable, i.e. one that would result in a `404`.
 ### uncaughtException
 
 If the restify server was created with `handleUncaughtExceptions: true`,
-restify will leverage [domains][54] to handle
-thrown errors in the handler chain. Thrown errors are a result of an explicit
+restify will leverage [domains][63] to handle
+thrown errors in the handler chain (or, if `handleUncaughtExceptions` is a
+function, that function's `onError` callback). Thrown errors are a result of an explicit
 `throw` statement, or as a result of programmer errors like a typo or a null
 ref. These thrown errors are caught by the domain, and will be emitted via this
 event. For example:
@@ -527,22 +601,51 @@ server.on('uncaughtException', function(req, res, route, err, callback) {
 If you listen to this event, you **must**:
 
 1.  send a response to the client _and_
-2.  call the callback function passed as the fourth argument of the event listener
+2.  call the callback function passed as the fifth argument of the event listener
 
 This behavior is different from the standard error events. If you do not listen
 to this event, restify's default behavior is to call `res.send()` with the error
 that was thrown.
 
-The signature is for the after event is as follows:
+The signature for the `uncaughtException` event is as follows:
 
 ```js
-function(req, res, route, error) { }
+function(req, res, route, error, callback) { }
 ```
 
 -   `req` - the request object
 -   `res` - the response object
--   `route` - the route object that serviced the request
--   `error` - the error passed to `next()`, if applicable
+-   `route` - the route object that serviced the request (`undefined` if the
+    error was thrown before routing)
+-   `error` - the error that was thrown
+-   `callback` - a function to call once you have responded
+
+### request
+
+Emitted with `(req, res)` for every incoming request that a `first()` handler
+did not stop, before restify runs any `pre()` or `use()` handlers.
+
+### audit
+
+Emitted by `plugins.auditLogger()` when it is given a `server` option. The
+listener receives the audit record object, the same one that is logged.
+
+```js
+server.on('audit', function(record) { });
+```
+
+### redirect
+
+Emitted with the redirect location (a string) whenever `res.redirect()` is
+called.
+
+```js
+server.on('redirect', function(location) { });
+```
+
+### mount
+
+Emitted with `(method, path)` each time a route is added.
 
 ### close
 
@@ -551,7 +654,7 @@ Emitted when the server closes.
 
 ## Log
 
-If you are using the [RequestLogger][55] plugin, the child logger
+If you are using the [RequestLogger][64] plugin, the child logger
 will be available on `req.log`:
 
 ```js
@@ -562,118 +665,137 @@ function myHandler(req, res, next) {
 }
 ```
 
-The child logger will inject the request's UUID in the `req._id` attribute of
-each log statement. Since the logger lasts for the life of the request, you can
+The child logger will inject the request's id (`req.id()`) in the `req_id`
+field of each log statement (configurable with the plugin's
+`requestIdFieldName` option). Since the logger lasts for the life of the request, you can
 use this to correlate statements for an individual request across any number of
 separate handlers.
 
 
 [1]: #request
 
-[2]: #accepts
+[2]: #properties
 
-[3]: #parameters
+[3]: #absoluteuri
 
-[4]: #examples
+[4]: #parameters
 
-[5]: #acceptsencoding
+[5]: #accepts
 
 [6]: #parameters-1
 
-[7]: #contentlength
+[7]: #examples
 
-[8]: #getcontenttype
+[8]: #acceptsencoding
 
-[9]: #date
+[9]: #parameters-2
 
-[10]: #href
+[10]: #contentlength
 
-[11]: #examples-1
+[11]: #contenttype
 
-[12]: #id
+[12]: #date
 
-[13]: #parameters-2
+[13]: #href
 
-[14]: #getpath
+[14]: #examples-1
 
-[15]: #examples-2
+[15]: #id
 
-[16]: #getquery
+[16]: #parameters-3
 
-[17]: #examples-3
+[17]: #path
 
-[18]: #time
+[18]: #examples-2
 
-[19]: #version
+[19]: #getquery
 
-[20]: #header
+[20]: #examples-3
 
-[21]: #parameters-3
+[21]: #time
 
-[22]: #examples-4
+[22]: #geturl
 
-[23]: #trailer
+[23]: #version
 
-[24]: #parameters-4
+[24]: #matchedversion
 
-[25]: #is
+[25]: #header
 
-[26]: #parameters-5
+[26]: #parameters-4
 
-[27]: #examples-5
+[27]: #examples-4
 
-[28]: #ischunked
+[28]: #trailer
 
-[29]: #iskeepalive
+[29]: #parameters-5
 
-[30]: #issecure
+[30]: #is
 
-[31]: #isupgraderequest
+[31]: #parameters-6
 
-[32]: #isupload
+[32]: #examples-5
 
-[33]: #tostring
+[33]: #ischunked
 
-[34]: #useragent
+[34]: #iskeepalive
 
-[35]: #starthandlertimer
+[35]: #issecure
 
-[36]: #parameters-6
+[36]: #isupgraderequest
 
-[37]: #examples-6
+[37]: #isupload
 
-[38]: #endhandlertimer
+[38]: #tostring
 
-[39]: #parameters-7
+[39]: #useragent
 
-[40]: #connectionstate
+[40]: #starthandlertimer
 
-[41]: #getroute
+[41]: #parameters-7
 
-[42]: #examples-7
+[42]: #examples-6
 
-[43]: #events
+[43]: #endhandlertimer
 
-[44]: #log
+[44]: #parameters-8
 
-[45]: https://nodejs.org/api/http.html
+[45]: #connectionstate
 
-[46]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+[46]: #getroute
 
-[47]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+[47]: #examples-7
 
-[48]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+[48]: #events
 
-[49]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+[49]: #log
 
-[50]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date
+[50]: https://nodejs.org/api/http.html
 
-[51]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+[51]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
-[52]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+[52]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
 
-[53]: http://nodejs.org/docs/latest/api/http.html#http_class_http_server
+[53]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
 
-[54]: https://nodejs.org/api/domain.html
+[54]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[55]: #bundled-plugins
+[55]: https://nodejs.org/api/buffer.html
+
+[56]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+
+[57]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[58]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date
+
+[59]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+
+[60]: https://developer.mozilla.org/docs/Web/API/URL/URL
+
+[61]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[62]: http://nodejs.org/docs/latest/api/http.html#http_class_http_server
+
+[63]: https://nodejs.org/api/domain.html
+
+[64]: #bundled-plugins

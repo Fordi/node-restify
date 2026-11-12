@@ -8,48 +8,65 @@ permalink: /docs/response-api/
 ### Table of Contents
 
 -   [Response][1]
-    -   [cache][2]
-        -   [Parameters][3]
-    -   [noCache][4]
-    -   [charSet][5]
-        -   [Parameters][6]
-        -   [Examples][7]
-    -   [header][8]
-        -   [Parameters][9]
-        -   [Examples][10]
-    -   [json][11]
-        -   [Parameters][12]
-        -   [Examples][13]
-    -   [link][14]
-        -   [Parameters][15]
-    -   [send][16]
-        -   [Parameters][17]
-        -   [Examples][18]
-    -   [sendRaw][19]
-        -   [Parameters][20]
-    -   [set][21]
+    -   [Properties][2]
+    -   [cache][3]
+        -   [Parameters][4]
+        -   [Examples][5]
+    -   [noCache][6]
+    -   [charSet][7]
+        -   [Parameters][8]
+        -   [Examples][9]
+    -   [get][10]
+        -   [Parameters][11]
+    -   [header][12]
+        -   [Parameters][13]
+        -   [Examples][14]
+    -   [json][15]
+        -   [Parameters][16]
+        -   [Examples][17]
+    -   [link][18]
+        -   [Parameters][19]
+        -   [Examples][20]
+    -   [send][21]
         -   [Parameters][22]
         -   [Examples][23]
-    -   [status][24]
+    -   [sendRaw][24]
         -   [Parameters][25]
-        -   [Examples][26]
-    -   [redirect][27]
-        -   [Parameters][28]
-        -   [Examples][29]
-    -   [redirect][30]
-        -   [Parameters][31]
-        -   [Examples][32]
-    -   [redirect][33]
-        -   [Parameters][34]
-        -   [Examples][35]
+    -   [set][26]
+        -   [Parameters][27]
+        -   [Examples][28]
+    -   [status][29]
+        -   [Parameters][30]
+        -   [Examples][31]
+    -   [redirect][32]
+        -   [Parameters][33]
+        -   [Examples][34]
+    -   [redirect][35]
+        -   [Parameters][36]
+        -   [Examples][37]
+    -   [redirect][38]
+        -   [Parameters][39]
+        -   [Examples][40]
 
 ## Response
 
 **Extends http.ServerResponse**
 
 Wraps all of the node
-[http.ServerResponse][36]
+[http.ServerResponse][41]
 APIs, events and properties, plus the following.
+
+### Properties
+
+-   `log` **[Object][42]** the request's logger
+-   `req` **[Request][43]** the request
+-   `contentType` **[String][44]?** content type `send()` uses to pick a
+    formatter, taking precedence over the Content-Type header
+-   `etag` **[String][44]?** used by `plugins.conditionalRequest` and
+    `plugins.fullResponse`
+-   `mtime` **([String][44] \| [Date][45])?** used by `plugins.conditionalRequest`
+-   `methods` **[Array][46]&lt;[String][44]>?** allowed methods, set on 405 responses
+-   `err` **any?** the error the request finished with, if any
 
 ### cache
 
@@ -57,18 +74,25 @@ Sets the `cache-control` header.
 
 #### Parameters
 
--   `type` **[String][37]** value of the header
+-   `type` **[String][44]** value of the header
                                        (`"public"` or `"private"`) (optional, default `"public"`)
--   `options` **[Object][38]?** an options object
-    -   `options.maxAge` **[Number][39]** max-age in seconds
+-   `options` **[Object][42]?** an options object
+    -   `options.maxAge` **[Number][47]?** max-age in seconds
 
-Returns **[String][37]** the value set to the header
+#### Examples
+
+```javascript
+res.cache('private', { maxAge: 60 });
+res.cache({ maxAge: 60 }); // type defaults to 'public'
+```
+
+Returns **[Response][48]** self, the response object
 
 ### noCache
 
 Turns off all cache related headers.
 
-Returns **[Response][40]** self, the response object
+Returns **[Response][48]** self, the response object
 
 ### charSet
 
@@ -76,7 +100,7 @@ Appends the provided character set to the response's `Content-Type`.
 
 #### Parameters
 
--   `type` **[String][37]** char-set value
+-   `type` **[String][44]** char-set value
 
 #### Examples
 
@@ -84,16 +108,30 @@ Appends the provided character set to the response's `Content-Type`.
 res.charSet('utf-8');
 ```
 
-Returns **[Response][40]** self, the response object
+Returns **[Response][48]** self, the response object
 
-### header
+### get
 
-Sets headers on the response.
+Retrieves a header off the response.
 
 #### Parameters
 
--   `key` **[String][37]** the name of the header
--   `value` **[String][37]** the value of the header
+-   `name` **[String][44]** the header name
+
+Returns **([String][44] \| [Number][47] \| [Array][46]&lt;[String][44]> | [undefined][49])** header value
+
+### header
+
+Sets or retrieves headers on the response.
+
+When setting, an existing value is appended to rather than replaced
+(except for `Content-Type`), and `Date` values are formatted as HTTP
+dates.
+
+#### Parameters
+
+-   `key` **[String][44]** the name of the header
+-   `value` **any?** the value of the header; omit to retrieve it
 
 #### Examples
 
@@ -125,42 +163,46 @@ res.header('x-foo', 'b');
 // => { 'x-foo': ['a', 'b'] }
 ```
 
-Returns **[Object][38]** the retrieved value or the value that was set
+Returns **([String][44] \| [Number][47] \| [Array][46]&lt;[String][44]> | [undefined][49])** the retrieved value or the
+                                            value that was set
 
 ### json
 
-Syntatic sugar for:
-
-```js
-res.contentType = 'json';
-res.send({hello: 'world'});
-```
+Sets `Content-Type: application/json` and calls `res.send()` with the
+same arguments.
 
 #### Parameters
 
--   `code` **[Number][39]?**    http status code
--   `body` **[Object][38]?**    value to json.stringify
--   `headers` **[Object][38]?** headers to set on the response
+-   `code` **[Number][47]?**    http status code
+-   `body` **any?**    value to json.stringify
+-   `headers` **[Object][42]?** headers to set on the response
 
 #### Examples
 
 ```javascript
-res.header('content-type', 'json');
-res.send({hello: 'world'});
+res.json({hello: 'world'});
+res.json(201, {hello: 'world'}, {'x-foo': 'bar'});
 ```
 
-Returns **[Object][38]** the response object
+Returns **[Response][48]** the response object
 
 ### link
 
-Sets the link header.
+Appends a `Link: <key>; rel="value"` header.
 
 #### Parameters
 
--   `key` **[String][37]**  the link key
--   `value` **[String][37]** the link value
+-   `key` **[String][44]**  the link target URI
+-   `value` **[String][44]** the link relation
 
-Returns **[String][37]** the header value set to res
+#### Examples
+
+```javascript
+res.link('/foo?page=2', 'next');
+// Link: </foo?page=2>; rel="next"
+```
+
+Returns **([String][44] \| [Array][46]&lt;[String][44]>)** the header value set to res
 
 ### send
 
@@ -169,16 +211,17 @@ formatter based on the `content-type` header.
 
 #### Parameters
 
--   `code` **[Number][39]?** http status code
--   `body` **([Object][38] \| [Buffer][41] \| [Error][42])?** the content to send
--   `headers` **[Object][38]?** any add'l headers to set
+-   `code` **[Number][47]?** http status code. When omitted and `body` is
+                              an `Error`, its `statusCode` (or 500) is used.
+-   `body` **any?** the content to send
+-   `headers` **[Object][42]?** any add'l headers to set
 
 #### Examples
 
 You can use send() to wrap up all the usual writeHead(), write(), end()
 calls on the HTTP API of node.
 You can pass send either a `code` and `body`, or just a body. body can be
-an `Object`, a `Buffer`, or an `Error`.
+an `Object`, a `Buffer`, an `Error`, or anything a formatter accepts.
 When you call `send()`, restify figures out how to format the response
 based on the `content-type`.
 
@@ -189,7 +232,7 @@ res.send(201, {hello: 'world'});
 res.send(new BadRequestError('meh'));
 ```
 
-Returns **[Object][38]** the response object
+Returns **[Response][48]** the response object
 
 ### sendRaw
 
@@ -200,11 +243,11 @@ formatters entirely and sends the content as is.
 
 #### Parameters
 
--   `code` **[Number][39]?** http status code
--   `body` **([string][37] \| [Buffer][41])?** the content to send
--   `headers` **[Object][38]?** any add'l headers to set
+-   `code` **[Number][47]?** http status code
+-   `body` **([string][44] \| [Buffer][50])** the content to send
+-   `headers` **[Object][42]?** any add'l headers to set
 
-Returns **[Object][38]** the response object
+Returns **[Response][48]** the response object
 
 ### set
 
@@ -213,16 +256,16 @@ Uses `header()` underneath the hood, enabling multi-value headers.
 
 #### Parameters
 
--   `name` **([String][37] \| [Object][38])** name of the header or
+-   `name` **([String][44] \| [Object][42])** name of the header or
                                    `Object` of headers
--   `val` **[String][37]** value of the header
+-   `val` **any?** value of the header (when `name` is a string)
 
 #### Examples
 
 ```javascript
 res.header('x-foo', 'a');
 res.set({
-    'x-foo', 'b',
+    'x-foo': 'b',
     'content-type': 'application/json'
 });
 // =>
@@ -232,7 +275,7 @@ res.set({
 // }
 ```
 
-Returns **[Object][38]** self, the response object
+Returns **[Response][48]** self, the response object
 
 ### status
 
@@ -240,7 +283,7 @@ Sets the http status code on the response.
 
 #### Parameters
 
--   `code` **[Number][39]** http status code
+-   `code` **[Number][47]** http status code
 
 #### Examples
 
@@ -248,7 +291,7 @@ Sets the http status code on the response.
 res.status(201);
 ```
 
-Returns **[Number][39]** the status code passed in
+Returns **[Number][47]** the status code passed in
 
 ### redirect
 
@@ -256,19 +299,20 @@ Redirect is sugar method for redirecting.
 
 #### Parameters
 
--   `options` **[Object][38]** url or an options object to configure a redirect
-    -   `options.secure` **[Boolean][43]?** whether to redirect to http or https
-    -   `options.hostname` **[String][37]?** redirect location's hostname
-    -   `options.pathname` **[String][37]?** redirect location's pathname
-    -   `options.port` **[String][37]?** redirect location's port number
-    -   `options.query` **[String][37]?** redirect location's query string
-                                        parameters
-    -   `options.overrideQuery` **[Boolean][43]?** if true, `options.query`
+-   `options` **[Object][42]** url or an options object to configure a redirect
+    -   `options.secure` **[Boolean][51]?** whether to redirect to http or https
+    -   `options.hostname` **[String][44]?** redirect location's hostname
+    -   `options.pathname` **[String][44]?** redirect location's pathname
+    -   `options.port` **([String][44] \| [Number][47])?** redirect location's port number
+    -   `options.query` **[Object][42]?** redirect location's query string
+                                        parameters, as an object of key to
+                                        value (or array of values)
+    -   `options.overrideQuery` **[Boolean][51]?** if true, `options.query`
                                                  stomps over any existing query
                                                  parameters on current URL.
                                                  by default, will merge the two.
-    -   `options.permanent` **[Boolean][43]?** if true, sets 301. defaults to 302.
--   `next` **[Function][44]** mandatory, to complete the response and trigger
+    -   `options.permanent` **[Boolean][51]?** if true, sets 301. defaults to 302.
+-   `next` **[Function][52]** mandatory, to complete the response and trigger
                            audit logger.
 
 #### Examples
@@ -295,7 +339,7 @@ res.redirect({
 }, next);  // => redirects to 301 https://www.foo.com/bar?a=1
 ```
 
-Returns **[undefined][45]** 
+Returns **[undefined][49]** 
 
 ### redirect
 
@@ -303,9 +347,9 @@ Redirect with code and url.
 
 #### Parameters
 
--   `code` **[Number][39]** http redirect status code
--   `url` **[String][37]** redirect url
--   `next` **[Function][44]** mandatory, to complete the response and trigger
+-   `code` **[Number][47]** http redirect status code
+-   `url` **[String][44]** redirect url
+-   `next` **[Function][52]** mandatory, to complete the response and trigger
                            audit logger.
 
 #### Examples
@@ -314,7 +358,7 @@ Redirect with code and url.
 res.redirect(301, 'www.foo.com', next);
 ```
 
-Returns **[undefined][45]** 
+Returns **[undefined][49]** 
 
 ### redirect
 
@@ -322,8 +366,8 @@ Redirect with url.
 
 #### Parameters
 
--   `url` **[String][37]** redirect url
--   `next` **[Function][44]** mandatory, to complete the response and trigger
+-   `url` **[String][44]** redirect url
+-   `next` **[Function][52]** mandatory, to complete the response and trigger
                            audit logger.
 
 #### Examples
@@ -333,94 +377,108 @@ res.redirect('www.foo.com', next);
 res.redirect('/foo', next);
 ```
 
-Returns **[undefined][45]** 
+Returns **[undefined][49]** 
 
 [1]: #response
 
-[2]: #cache
+[2]: #properties
 
-[3]: #parameters
+[3]: #cache
 
-[4]: #nocache
+[4]: #parameters
 
-[5]: #charset
+[5]: #examples
 
-[6]: #parameters-1
+[6]: #nocache
 
-[7]: #examples
+[7]: #charset
 
-[8]: #header
+[8]: #parameters-1
 
-[9]: #parameters-2
+[9]: #examples-1
 
-[10]: #examples-1
+[10]: #get
 
-[11]: #json
+[11]: #parameters-2
 
-[12]: #parameters-3
+[12]: #header
 
-[13]: #examples-2
+[13]: #parameters-3
 
-[14]: #link
+[14]: #examples-2
 
-[15]: #parameters-4
+[15]: #json
 
-[16]: #send
+[16]: #parameters-4
 
-[17]: #parameters-5
+[17]: #examples-3
 
-[18]: #examples-3
+[18]: #link
 
-[19]: #sendraw
+[19]: #parameters-5
 
-[20]: #parameters-6
+[20]: #examples-4
 
-[21]: #set
+[21]: #send
 
-[22]: #parameters-7
+[22]: #parameters-6
 
-[23]: #examples-4
+[23]: #examples-5
 
-[24]: #status
+[24]: #sendraw
 
-[25]: #parameters-8
+[25]: #parameters-7
 
-[26]: #examples-5
+[26]: #set
 
-[27]: #redirect
+[27]: #parameters-8
 
-[28]: #parameters-9
+[28]: #examples-6
 
-[29]: #examples-6
+[29]: #status
 
-[30]: #redirect-1
+[30]: #parameters-9
 
-[31]: #parameters-10
+[31]: #examples-7
 
-[32]: #examples-7
+[32]: #redirect
 
-[33]: #redirect-2
+[33]: #parameters-10
 
-[34]: #parameters-11
+[34]: #examples-8
 
-[35]: #examples-8
+[35]: #redirect-1
 
-[36]: https://nodejs.org/docs/latest/api/http.html
+[36]: #parameters-11
 
-[37]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+[37]: #examples-9
 
-[38]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+[38]: #redirect-2
 
-[39]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+[39]: #parameters-12
 
-[40]: #response
+[40]: #examples-10
 
-[41]: https://nodejs.org/api/buffer.html
+[41]: https://nodejs.org/docs/latest/api/http.html
 
-[42]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+[42]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
-[43]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+[43]: https://developer.mozilla.org/Add-ons/SDK/High-Level_APIs/request
 
-[44]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+[44]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[45]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+[45]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date
+
+[46]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[47]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[48]: #response
+
+[49]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+
+[50]: https://nodejs.org/api/buffer.html
+
+[51]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[52]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function

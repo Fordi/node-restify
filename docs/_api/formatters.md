@@ -51,17 +51,23 @@ var server = restify.createServer({
 
 ### formatter
 
-Format a response for being sent over the wire
+Format a response for being sent over the wire.
+
+Formatters are keyed by content type in `createServer({ formatters })`.
+A key may carry a q-value (e.g. `'application/foo; q=0.9'`) to control its
+priority during content negotiation; the built-in formatters are keyed this
+way. The returned value is written to the socket as-is, so it must be a
+string, a Buffer, `null` or `undefined`.
 
 Type: [Function][14]
 
 #### Parameters
 
--   `req` **[Object][15]** the request object (not used)
+-   `req` **[Object][15]** the request object
 -   `res` **[Object][15]** the response object
--   `body` **[Object][15]** response body to format
+-   `body` **any** response body to format
 
-Returns **[String][16]** formatted response data
+Returns **([String][16] \| [Buffer][17] | null | [undefined][18])** formatted response data
 
 ## Included formatters
 
@@ -85,8 +91,8 @@ Returns **[String][16]** data
 
 ### formatJSON
 
-JSON formatter. Will look for a toJson() method on the body. If one does not
-exist then a JSON.stringify will be attempted.
+JSON formatter. Serializes the body with `JSON.stringify` (so a `toJSON()`
+method on the body is honored); an `undefined` body is sent as `null`.
 
 #### Parameters
 
@@ -154,3 +160,5 @@ Returns **[Buffer][17]** body
 [16]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
 [17]: https://nodejs.org/api/buffer.html
+
+[18]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined

@@ -47,7 +47,8 @@ function(req, res, route, error) { }
 
 * `req` - the request object
 * `res` - the response object
-* `route` - the route object that serviced the request
+* `route` - the route object that serviced the request (`undefined` when no
+  route matched)
 * `error` - the error passed to `next()`, if applicable
 
 Note that when the server automatically responds with a
@@ -96,7 +97,8 @@ routable, i.e. one that would result in a `404`.
 
 If the restify server was created with `handleUncaughtExceptions: true`,
 restify will leverage [domains](https://nodejs.org/api/domain.html) to handle
-thrown errors in the handler chain. Thrown errors are a result of an explicit
+thrown errors in the handler chain (or, if `handleUncaughtExceptions` is a
+function, that function's `onError` callback). Thrown errors are a result of an explicit
 `throw` statement, or as a result of programmer errors like a typo or a null
 ref. These thrown errors are caught by the domain, and will be emitted via this
 event. For example:
@@ -118,22 +120,51 @@ server.on('uncaughtException', function(req, res, route, err, callback) {
 If you listen to this event, you __must__:
 
 1. send a response to the client _and_
-2. call the callback function passed as the fourth argument of the event listener
+2. call the callback function passed as the fifth argument of the event listener
 
 This behavior is different from the standard error events. If you do not listen
 to this event, restify's default behavior is to call `res.send()` with the error
 that was thrown.
 
-The signature is for the after event is as follows:
+The signature for the `uncaughtException` event is as follows:
 
 ```js
-function(req, res, route, error) { }
+function(req, res, route, error, callback) { }
 ```
 
 * `req` - the request object
 * `res` - the response object
-* `route` - the route object that serviced the request
-* `error` - the error passed to `next()`, if applicable
+* `route` - the route object that serviced the request (`undefined` if the
+  error was thrown before routing)
+* `error` - the error that was thrown
+* `callback` - a function to call once you have responded
+
+### request
+
+Emitted with `(req, res)` for every incoming request that a `first()` handler
+did not stop, before restify runs any `pre()` or `use()` handlers.
+
+### audit
+
+Emitted by `plugins.auditLogger()` when it is given a `server` option. The
+listener receives the audit record object, the same one that is logged.
+
+```js
+server.on('audit', function(record) { });
+```
+
+### redirect
+
+Emitted with the redirect location (a string) whenever `res.redirect()` is
+called.
+
+```js
+server.on('redirect', function(location) { });
+```
+
+### mount
+
+Emitted with `(method, path)` each time a route is added.
 
 ### close
 

@@ -9,7 +9,8 @@ function myHandler(req, res, next) {
 }
 ```
 
-The child logger will inject the request's UUID in the `req._id` attribute of
-each log statement. Since the logger lasts for the life of the request, you can
+The child logger will inject the request's id (`req.id()`) in the `req_id`
+field of each log statement (configurable with the plugin's
+`requestIdFieldName` option). Since the logger lasts for the life of the request, you can
 use this to correlate statements for an individual request across any number of
 separate handlers.

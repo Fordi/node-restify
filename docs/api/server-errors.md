@@ -6,6 +6,14 @@ object that passes an `instanceof Error` check.
 Before the error object is sent to the client, the server will fire an event
 using the name of the error, without the `Error` part of the name. For example,
 given an `InternalServerError`, the server will emit an `InternalServer` event.
+There are two exceptions: `ResourceNotFoundError` emits `NotFound`, and
+`InvalidVersionError` emits `VersionNotAllowed`.
+
+Errors with a numeric `statusCode` (such as restify-errors) are sent as-is.
+Any other truthy value passed to `next()` - a plain `Error`, or a non-error
+value such as a string - is sent as an `InternalError` (500) whose message is
+`String(value)`. Calling `next(false)` stops the handler chain without an
+error.
 This creates opportunities to do logging, metrics, or payload mutation based on
 the type of error. For example:
 
